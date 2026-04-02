@@ -70,11 +70,12 @@ Then run it with:
 Replace `<platform>` with your platform (e.g., `darwin-arm64`, `linux-x64`).
 
 - Core pieces:
-  - `packages/opencode`: OpenCode core business logic & server.
-  - `packages/opencode/src/cli/cmd/tui/`: The TUI code, written in SolidJS with [opentui](https://github.com/sst/opentui)
-  - `packages/app`: The shared web UI components, written in SolidJS
-  - `packages/desktop`: The native desktop app, built with Tauri (wraps `packages/app`)
+  - `packages/opencode`: OpenCode core business logic, server, and TUI
+  - `packages/opencode/src/cli/cmd/tui/`: The TUI code, written in SolidJS with opentui
   - `packages/plugin`: Source for `@opencode-ai/plugin`
+  - `packages/sdk/js`: JavaScript/TypeScript SDK
+  - `packages/util`: Shared utilities
+  - `packages/script`: Build and utility scripts
 
 ### Understanding bun dev vs opencode
 
@@ -84,13 +85,11 @@ During development, `bun dev` is the local equivalent of the built `opencode` co
 # Development (from project root)
 bun dev --help           # Show all available commands
 bun dev serve            # Start headless API server
-bun dev web              # Start server + open web interface
 bun dev <directory>      # Start TUI in specific directory
 
 # Production
 opencode --help          # Show all available commands
 opencode serve           # Start headless API server
-opencode web             # Start server + open web interface
 opencode <directory>     # Start TUI in specific directory
 ```
 
@@ -108,50 +107,8 @@ This starts the headless server on port 4096 by default. You can specify a diffe
 bun dev serve --port 8080
 ```
 
-### Running the Web App
-
-To test UI changes during development:
-
-1. **First, start the OpenCode server** (see [Running the API Server](#running-the-api-server) section above)
-2. **Then run the web app:**
-
-```bash
-bun run --cwd packages/app dev
-```
-
-This starts a local dev server at http://localhost:5173 (or similar port shown in output). Most UI changes can be tested here, but the server must be running for full functionality.
-
-### Running the Desktop App
-
-The desktop app is a native Tauri application that wraps the web UI.
-
-To run the native desktop app:
-
-```bash
-bun run --cwd packages/desktop tauri dev
-```
-
-This starts the web dev server on http://localhost:1420 and opens the native window.
-
-If you only want the web dev server (no native shell):
-
-```bash
-bun run --cwd packages/desktop dev
-```
-
-To create a production `dist/` and build the native app bundle:
-
-```bash
-bun run --cwd packages/desktop tauri build
-```
-
-This runs `bun run --cwd packages/desktop build` automatically via Tauri’s `beforeBuildCommand`.
-
 > [!NOTE]
-> Running the desktop app requires additional Tauri dependencies (Rust toolchain, platform-specific libraries). See the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) for setup instructions.
-
-> [!NOTE]
-> If you make changes to the API or SDK (e.g. `packages/opencode/src/server/server.ts`), run `./script/generate.ts` to regenerate the SDK and related files.
+> If you make changes to the API or SDK (e.g. `packages/opencode/src/server/server.ts`), run `./packages/sdk/js/script/build.ts` to regenerate the JavaScript SDK.
 
 Please try to follow the [style guide](./AGENTS.md)
 
@@ -175,17 +132,6 @@ Other tips and tricks:
 
 - You might want to use `--inspect-wait` or `--inspect-brk` instead of `--inspect`, depending on your workflow
 - Specifying `--inspect=ws://localhost:6499/` on every invocation can be tiresome, you may want to `export BUN_OPTIONS=--inspect=ws://localhost:6499/` instead
-
-#### VSCode Setup
-
-If you use VSCode, you can use our example configurations [.vscode/settings.example.json](.vscode/settings.example.json) and [.vscode/launch.example.json](.vscode/launch.example.json).
-
-Some debug methods that can be problematic:
-
-- Debug configurations with `"request": "launch"` can have breakpoints incorrectly mapped and thus unusable
-- The same problem arises when running OpenCode in the VSCode `JavaScript Debug Terminal`
-
-With that said, you may want to try these methods, as they might work for you.
 
 ## Pull Request Expectations
 
@@ -234,17 +180,19 @@ PR titles should follow conventional commit standards:
 
 You can optionally include a scope to indicate which package is affected:
 
-- `feat(app):` feature in the app package
-- `fix(desktop):` bug fix in the desktop package
-- `chore(opencode):` maintenance in the opencode package
+- `feat(opencode):` feature in the opencode package
+- `feat(plugin):` feature in the plugin package
+- `feat(sdk):` feature in the sdk package
+- `fix(util):` bug fix in the util package
+- `chore(script):` maintenance in the script package
 
 Examples:
 
 - `docs: update contributing guidelines`
 - `fix: resolve crash on startup`
 - `feat: add dark mode support`
-- `feat(app): add dark mode support`
-- `fix(desktop): resolve crash on startup`
+- `feat(opencode): add new command`
+- `fix(plugin): resolve loading issue`
 - `chore: bump dependency versions`
 
 ### Style Preferences
