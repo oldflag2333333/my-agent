@@ -1,6 +1,6 @@
 import type { TuiPlugin, TuiPluginApi, TuiPluginModule } from "@keel-ai/plugin/tui"
 import { createMemo, For, Show, createSignal } from "solid-js"
-import { TodoItem } from "../../component/todo-item"
+import { TodoItem } from "@/cli/cmd/tui/component/todo-item"
 
 const id = "internal:sidebar-todo"
 

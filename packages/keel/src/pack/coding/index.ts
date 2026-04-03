@@ -13,9 +13,12 @@ import { codingAgents } from "./agents"
 
 import CODING_CONTEXT from "./prompt/coding-context.txt"
 
+import { codingTui } from "./tui"
+
 export const codingPack: Pack = {
   id: "coding",
   agents: codingAgents,
+  tui: codingTui,
   instructions: ["AGENTS.md", ...(Flag.KEEL_DISABLE_CLAUDE_CODE_PROMPT ? [] : ["CLAUDE.md"]), "CONTEXT.md"],
   tools: [
     BashTool,
