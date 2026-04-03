@@ -20,7 +20,6 @@ import { Discovery } from "./discovery"
 
 export namespace Skill {
   const log = Log.create({ service: "skill" })
-  const EXTERNAL_DIRS = [".claude", ".agents"]
   const EXTERNAL_SKILL_PATTERN = "skills/**/SKILL.md"
   const KEEL_SKILL_PATTERN = "{skill,skills}/**/SKILL.md"
   const SKILL_PATTERN = "**/SKILL.md"
@@ -143,15 +142,18 @@ export namespace Skill {
     directory: string,
     worktree: string,
   ) {
-    if (!Flag.KEEL_DISABLE_EXTERNAL_SKILLS) {
-      for (const dir of EXTERNAL_DIRS) {
+    const cfg = yield* config.get()
+    const dirs = cfg.packs.includes("coding") ? [".claude", ".agents"] : []
+
+    if (!Flag.KEEL_DISABLE_EXTERNAL_SKILLS && dirs.length > 0) {
+      for (const dir of dirs) {
         const root = path.join(Global.Path.home, dir)
         if (!(yield* fsys.isDir(root))) continue
         yield* scan(state, bus, root, EXTERNAL_SKILL_PATTERN, { dot: true, scope: "global" })
       }
 
       const upDirs = yield* fsys
-        .up({ targets: EXTERNAL_DIRS, start: directory, stop: worktree })
+        .up({ targets: dirs, start: directory, stop: worktree })
         .pipe(Effect.catch(() => Effect.succeed([] as string[])))
 
       for (const root of upDirs) {
@@ -164,7 +166,6 @@ export namespace Skill {
       yield* scan(state, bus, dir, KEEL_SKILL_PATTERN)
     }
 
-    const cfg = yield* config.get()
     for (const item of cfg.skills?.paths ?? []) {
       const expanded = item.startsWith("~/") ? path.join(os.homedir(), item.slice(2)) : item
       const dir = path.isAbsolute(expanded) ? expanded : path.join(directory, expanded)

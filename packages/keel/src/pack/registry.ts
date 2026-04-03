@@ -1,5 +1,5 @@
 import { Effect, Layer, Schema, ServiceMap } from "effect"
-import type { BootstrapHook, Pack, PromptContribution } from "./pack"
+import type { AgentContribution, BootstrapHook, FileDiagnostics, FileWriteHook, Pack, PromptContribution } from "./pack"
 import type { Tool } from "@/tool/tool"
 
 export namespace PackRegistry {
@@ -13,11 +13,12 @@ export namespace PackRegistry {
 
   export interface Interface {
     readonly list: () => Effect.Effect<Pack[]>
-    readonly agents: () => Effect.Effect<unknown[]>
+    readonly agents: () => Effect.Effect<AgentContribution[]>
     readonly tools: () => Effect.Effect<Tool.Info[]>
     readonly prompts: () => Effect.Effect<PromptContribution[]>
     readonly instructions: () => Effect.Effect<string[]>
     readonly bootstraps: () => Effect.Effect<BootstrapHook[]>
+    readonly fileWrites: () => Effect.Effect<FileWriteHook[]>
     readonly tui: () => Effect.Effect<unknown[]>
   }
 
@@ -61,6 +62,9 @@ export namespace PackRegistry {
         const bootstraps = Effect.fn("PackRegistry.bootstraps")(() =>
           Effect.succeed(packs.flatMap((pack) => (pack.bootstrap ? [pack.bootstrap] : []))),
         )
+        const fileWrites = Effect.fn("PackRegistry.fileWrites")(() =>
+          Effect.succeed(packs.flatMap((pack) => (pack.onFileWrite ? [pack.onFileWrite] : []))),
+        )
         const tui = Effect.fn("PackRegistry.tui")(() => Effect.succeed(packs.flatMap((pack) => pack.tui ?? [])))
 
         return Service.of({
@@ -70,6 +74,7 @@ export namespace PackRegistry {
           prompts,
           instructions,
           bootstraps,
+          fileWrites,
           tui,
         })
       }),
@@ -129,5 +134,26 @@ export namespace PackRegistry {
 
   export async function tui() {
     return Effect.runPromise(current().pipe(Effect.map((packs) => packs.flatMap((pack) => pack.tui ?? []))))
+  }
+
+  export async function onFileWrite(filepath: string): Promise<FileDiagnostics> {
+    return Effect.runPromise(
+      current().pipe(
+        Effect.flatMap((list) =>
+          Effect.promise(async () => {
+            const out: FileDiagnostics = {}
+            for (const item of list) {
+              if (!item.onFileWrite) continue
+              const next = await item.onFileWrite(filepath)
+              if (!next) continue
+              for (const [file, issues] of Object.entries(next)) {
+                out[file] = [...(out[file] ?? []), ...issues]
+              }
+            }
+            return out
+          }),
+        ),
+      ),
+    )
   }
 }

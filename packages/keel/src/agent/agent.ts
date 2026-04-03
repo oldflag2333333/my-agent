@@ -10,7 +10,6 @@ import { ProviderTransform } from "../provider/transform"
 
 import PROMPT_GENERATE from "./generate.txt"
 import PROMPT_COMPACTION from "./prompt/compaction.txt"
-import PROMPT_EXPLORE from "./prompt/explore.txt"
 import PROMPT_SUMMARY from "./prompt/summary.txt"
 import PROMPT_TITLE from "./prompt/title.txt"
 import { Permission } from "@/permission"
@@ -22,6 +21,7 @@ import { Skill } from "../skill"
 import { Effect, ServiceMap, Layer } from "effect"
 import { InstanceState } from "@/effect/instance-state"
 import { makeRuntime } from "@/effect/run-service"
+import { PackRegistry, packs } from "@/pack"
 
 export namespace Agent {
   export const Info = z
@@ -104,83 +104,19 @@ export namespace Agent {
 
           const user = Permission.fromConfig(cfg.permission ?? {})
 
-          const agents: Record<string, Info> = {
-            build: {
-              name: "build",
-              description: "The default agent. Executes tools based on configured permissions.",
-              options: {},
-              permission: Permission.merge(
-                defaults,
-                Permission.fromConfig({
-                  question: "allow",
-                  plan_enter: "allow",
-                }),
-                user,
-              ),
-              mode: "primary",
-              native: true,
+          if (!PackRegistry.configured(cfg.packs)) PackRegistry.init(cfg.packs, packs)
+          const extra = Permission.fromConfig({
+            edit: {
+              [path.relative(Instance.worktree, path.join(Global.Path.data, path.join("plans", "*.md")))]: "allow",
             },
-            plan: {
-              name: "plan",
-              description: "Plan mode. Disallows all edit tools.",
-              options: {},
-              permission: Permission.merge(
-                defaults,
-                Permission.fromConfig({
-                  question: "allow",
-                  plan_exit: "allow",
-                  external_directory: {
-                    [path.join(Global.Path.data, "plans", "*")]: "allow",
-                  },
-                  edit: {
-                    "*": "deny",
-                    [path.join(".keel", "plans", "*.md")]: "allow",
-                    [path.relative(Instance.worktree, path.join(Global.Path.data, path.join("plans", "*.md")))]:
-                      "allow",
-                  },
-                }),
-                user,
-              ),
-              mode: "primary",
-              native: true,
-            },
+          })
+          const core: Record<string, Info> = {
             general: {
               name: "general",
               description: `General-purpose agent for researching complex questions and executing multi-step tasks. Use this agent to execute multiple units of work in parallel.`,
-              permission: Permission.merge(
-                defaults,
-                Permission.fromConfig({
-                  todowrite: "deny",
-                }),
-                user,
-              ),
-              options: {},
-              mode: "subagent",
-              native: true,
-            },
-            explore: {
-              name: "explore",
-              permission: Permission.merge(
-                defaults,
-                Permission.fromConfig({
-                  "*": "deny",
-                  grep: "allow",
-                  glob: "allow",
-                  list: "allow",
-                  bash: "allow",
-                  webfetch: "allow",
-                  websearch: "allow",
-                  codesearch: "allow",
-                  read: "allow",
-                  external_directory: {
-                    "*": "ask",
-                    ...Object.fromEntries(whitelistedDirs.map((dir) => [dir, "allow"])),
-                  },
-                }),
-                user,
-              ),
-              description: `Fast agent specialized for exploring codebases. Use this when you need to quickly find files by patterns (eg. "src/components/**/*.tsx"), search code for keywords (eg. "API endpoints"), or answer questions about the codebase (eg. "how do API endpoints work?"). When calling this agent, specify the desired thoroughness level: "quick" for basic searches, "medium" for moderate exploration, or "very thorough" for comprehensive analysis across multiple locations and naming conventions.`,
-              prompt: PROMPT_EXPLORE,
+              permission: Permission.fromConfig({
+                todowrite: "deny",
+              }),
               options: {},
               mode: "subagent",
               native: true,
@@ -191,13 +127,9 @@ export namespace Agent {
               native: true,
               hidden: true,
               prompt: PROMPT_COMPACTION,
-              permission: Permission.merge(
-                defaults,
-                Permission.fromConfig({
-                  "*": "deny",
-                }),
-                user,
-              ),
+              permission: Permission.fromConfig({
+                "*": "deny",
+              }),
               options: {},
             },
             title: {
@@ -207,13 +139,9 @@ export namespace Agent {
               native: true,
               hidden: true,
               temperature: 0.5,
-              permission: Permission.merge(
-                defaults,
-                Permission.fromConfig({
-                  "*": "deny",
-                }),
-                user,
-              ),
+              permission: Permission.fromConfig({
+                "*": "deny",
+              }),
               prompt: PROMPT_TITLE,
             },
             summary: {
@@ -222,16 +150,27 @@ export namespace Agent {
               options: {},
               native: true,
               hidden: true,
-              permission: Permission.merge(
-                defaults,
-                Permission.fromConfig({
-                  "*": "deny",
-                }),
-                user,
-              ),
+              permission: Permission.fromConfig({
+                "*": "deny",
+              }),
               prompt: PROMPT_SUMMARY,
             },
           }
+
+          const merged = [...values(core), ...(yield* Effect.promise(() => PackRegistry.agents()))].map((item) => {
+            const permission =
+              item.name === "plan"
+                ? Permission.merge(defaults, item.permission, extra, user)
+                : Permission.merge(defaults, item.permission, user)
+            return {
+              ...item,
+              options: item.options ?? {},
+              permission,
+            }
+          })
+          const agents = Object.fromEntries(merged.map((item) => [item.name, item])) as Record<string, Info>
+          const coding = merged.some((item) => item.name === "build" || item.name === "plan")
+          if (!coding && agents.general) agents.general.mode = "primary"
 
           for (const [key, value] of Object.entries(cfg.agent ?? {})) {
             if (value.disable) {
@@ -279,19 +218,13 @@ export namespace Agent {
           }
 
           const get = Effect.fnUntraced(function* (agent: string) {
-            return agents[agent]
+            return yield* Effect.succeed(agents[agent])
           })
 
           const list = Effect.fnUntraced(function* () {
             const cfg = yield* config.get()
-            return pipe(
-              agents,
-              values(),
-              sortBy(
-                [(x) => (cfg.default_agent ? x.name === cfg.default_agent : x.name === "build"), "desc"],
-                [(x) => x.name, "asc"],
-              ),
-            )
+            const primary = cfg.default_agent ?? (agents.build ? "build" : "general")
+            return pipe(agents, values(), sortBy([(x) => x.name === primary, "desc"], [(x) => x.name, "asc"]))
           })
 
           const defaultAgent = Effect.fnUntraced(function* () {

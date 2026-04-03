@@ -12,11 +12,11 @@ import type { MessageV2 } from "./message-v2"
 
 const log = Log.create({ service: "instruction" })
 
-const FILES = [
+void `const FILES = [
   "AGENTS.md",
   ...(Flag.KEEL_DISABLE_CLAUDE_CODE_PROMPT ? [] : ["CLAUDE.md"]),
   "CONTEXT.md", // deprecated
-]
+]`
 
 function globalFiles(files: string[]) {
   const result = []
@@ -37,9 +37,7 @@ async function names(config?: Config.Info) {
   if (!PackRegistry.configured(cfg.packs)) {
     PackRegistry.init(cfg.packs, packs)
   }
-  const pack = await PackRegistry.instructions()
-  const base = cfg.packs.includes("coding") ? FILES : []
-  return Array.from(new Set([...base, ...pack]))
+  return Array.from(new Set(await PackRegistry.instructions()))
 }
 
 async function resolveRelative(instruction: string): Promise<string[]> {

@@ -6,20 +6,33 @@
 import z from "zod"
 import * as path from "path"
 import { Tool } from "./tool"
-import { LSP } from "../lsp"
 import { createTwoFilesPatch, diffLines } from "diff"
 import DESCRIPTION from "./edit.txt"
 import { File } from "../file"
 import { FileWatcher } from "../file/watcher"
 import { Bus } from "../bus"
-import { Format } from "../format"
 import { FileTime } from "../file/time"
 import { Filesystem } from "../util/filesystem"
 import { Instance } from "../project/instance"
 import { Snapshot } from "@/snapshot"
 import { assertExternalDirectory } from "./external-directory"
+import { PackRegistry, type FileDiagnostic } from "@/pack"
 
 const MAX_DIAGNOSTICS_PER_FILE = 20
+
+function pretty(diagnostic: FileDiagnostic) {
+  const severity =
+    diagnostic.severity === 2
+      ? "WARN"
+      : diagnostic.severity === 3
+        ? "INFO"
+        : diagnostic.severity === 4
+          ? "HINT"
+          : "ERROR"
+  const line = diagnostic.range.start.line + 1
+  const col = diagnostic.range.start.character + 1
+  return `${severity} [${line}:${col}] ${diagnostic.message}`
+}
 
 function normalizeLineEndings(text: string): string {
   return text.replaceAll("\r\n", "\n")
@@ -72,7 +85,6 @@ export const EditTool = Tool.define("edit", {
           },
         })
         await Filesystem.write(filePath, params.newString)
-        await Format.file(filePath)
         Bus.publish(File.Event.Edited, { file: filePath })
         await Bus.publish(FileWatcher.Event.Updated, {
           file: filePath,
@@ -108,7 +120,6 @@ export const EditTool = Tool.define("edit", {
       })
 
       await Filesystem.write(filePath, contentNew)
-      await Format.file(filePath)
       Bus.publish(File.Event.Edited, { file: filePath })
       await Bus.publish(FileWatcher.Event.Updated, {
         file: filePath,
@@ -142,8 +153,7 @@ export const EditTool = Tool.define("edit", {
     })
 
     let output = "Edit applied successfully."
-    await LSP.touchFile(filePath, true)
-    const diagnostics = await LSP.diagnostics()
+    const diagnostics = await PackRegistry.onFileWrite(filePath)
     const normalizedFilePath = Filesystem.normalizePath(filePath)
     const issues = diagnostics[normalizedFilePath] ?? []
     const errors = issues.filter((item) => item.severity === 1)
@@ -151,7 +161,7 @@ export const EditTool = Tool.define("edit", {
       const limited = errors.slice(0, MAX_DIAGNOSTICS_PER_FILE)
       const suffix =
         errors.length > MAX_DIAGNOSTICS_PER_FILE ? `\n... and ${errors.length - MAX_DIAGNOSTICS_PER_FILE} more` : ""
-      output += `\n\nLSP errors detected in this file, please fix:\n<diagnostics file="${filePath}">\n${limited.map(LSP.Diagnostic.pretty).join("\n")}${suffix}\n</diagnostics>`
+      output += `\n\nLSP errors detected in this file, please fix:\n<diagnostics file="${filePath}">\n${limited.map(pretty).join("\n")}${suffix}\n</diagnostics>`
     }
 
     return {

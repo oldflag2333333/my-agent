@@ -9,11 +9,24 @@ import { Patch } from "../patch"
 import { createTwoFilesPatch, diffLines } from "diff"
 import { assertExternalDirectory } from "./external-directory"
 import { trimDiff } from "./edit"
-import { LSP } from "../lsp"
 import { Filesystem } from "../util/filesystem"
 import DESCRIPTION from "./apply_patch.txt"
 import { File } from "../file"
-import { Format } from "../format"
+import { PackRegistry, type FileDiagnostic } from "@/pack"
+
+function pretty(diagnostic: FileDiagnostic) {
+  const severity =
+    diagnostic.severity === 2
+      ? "WARN"
+      : diagnostic.severity === 3
+        ? "INFO"
+        : diagnostic.severity === 4
+          ? "HINT"
+          : "ERROR"
+  const line = diagnostic.range.start.line + 1
+  const col = diagnostic.range.start.character + 1
+  return `${severity} [${line}:${col}] ${diagnostic.message}`
+}
 
 const PatchParams = z.object({
   patchText: z.string().describe("The full patch text that describes all changes to be made"),
@@ -187,6 +200,7 @@ export const ApplyPatchTool = Tool.define("apply_patch", {
 
     // Apply the changes
     const updates: Array<{ file: string; event: "add" | "change" | "unlink" }> = []
+    const diagnostics: Record<string, FileDiagnostic[]> = {}
 
     for (const change of fileChanges) {
       const edited = change.type === "delete" ? undefined : (change.movePath ?? change.filePath)
@@ -221,7 +235,7 @@ export const ApplyPatchTool = Tool.define("apply_patch", {
       }
 
       if (edited) {
-        await Format.file(edited)
+        Object.assign(diagnostics, await PackRegistry.onFileWrite(edited))
         Bus.publish(File.Event.Edited, { file: edited })
       }
     }
@@ -230,14 +244,6 @@ export const ApplyPatchTool = Tool.define("apply_patch", {
     for (const update of updates) {
       await Bus.publish(FileWatcher.Event.Updated, update)
     }
-
-    // Notify LSP of file changes and collect diagnostics
-    for (const change of fileChanges) {
-      if (change.type === "delete") continue
-      const target = change.movePath ?? change.filePath
-      await LSP.touchFile(target, true)
-    }
-    const diagnostics = await LSP.diagnostics()
 
     // Generate output summary
     const summaryLines = fileChanges.map((change) => {
@@ -264,7 +270,7 @@ export const ApplyPatchTool = Tool.define("apply_patch", {
         const limited = errors.slice(0, MAX_DIAGNOSTICS_PER_FILE)
         const suffix =
           errors.length > MAX_DIAGNOSTICS_PER_FILE ? `\n... and ${errors.length - MAX_DIAGNOSTICS_PER_FILE} more` : ""
-        output += `\n\nLSP errors detected in ${path.relative(Instance.worktree, target).replaceAll("\\", "/")}, please fix:\n<diagnostics file="${target}">\n${limited.map(LSP.Diagnostic.pretty).join("\n")}${suffix}\n</diagnostics>`
+        output += `\n\nLSP errors detected in ${path.relative(Instance.worktree, target).replaceAll("\\", "/")}, please fix:\n<diagnostics file="${target}">\n${limited.map(pretty).join("\n")}${suffix}\n</diagnostics>`
       }
     }
 

@@ -83,24 +83,26 @@ export namespace Command {
         const cfg = yield* config.get()
         const commands: Record<string, Info> = {}
 
-        commands[Default.INIT] = {
-          name: Default.INIT,
-          description: "create/update AGENTS.md",
-          source: "command",
-          get template() {
-            return PROMPT_INITIALIZE.replace("${path}", ctx.worktree)
-          },
-          hints: hints(PROMPT_INITIALIZE),
-        }
-        commands[Default.REVIEW] = {
-          name: Default.REVIEW,
-          description: "review changes [commit|branch|pr], defaults to uncommitted",
-          source: "command",
-          get template() {
-            return PROMPT_REVIEW.replace("${path}", ctx.worktree)
-          },
-          subtask: true,
-          hints: hints(PROMPT_REVIEW),
+        if (cfg.packs.includes("coding")) {
+          commands[Default.INIT] = {
+            name: Default.INIT,
+            description: "create/update AGENTS.md",
+            source: "command",
+            get template() {
+              return PROMPT_INITIALIZE.replace("${path}", ctx.worktree)
+            },
+            hints: hints(PROMPT_INITIALIZE),
+          }
+          commands[Default.REVIEW] = {
+            name: Default.REVIEW,
+            description: "review changes [commit|branch|pr], defaults to uncommitted",
+            source: "command",
+            get template() {
+              return PROMPT_REVIEW.replace("${path}", ctx.worktree)
+            },
+            subtask: true,
+            hints: hints(PROMPT_REVIEW),
+          }
         }
 
         for (const [name, command] of Object.entries(cfg.command ?? {})) {
@@ -124,20 +126,18 @@ export namespace Command {
             source: "mcp",
             description: prompt.description,
             get template() {
-              return new Promise<string>(async (resolve, reject) => {
-                const template = await MCP.getPrompt(
-                  prompt.client,
-                  prompt.name,
-                  prompt.arguments
-                    ? Object.fromEntries(prompt.arguments.map((argument, i) => [argument.name, `$${i + 1}`]))
-                    : {},
-                ).catch(reject)
-                resolve(
+              return MCP.getPrompt(
+                prompt.client,
+                prompt.name,
+                prompt.arguments
+                  ? Object.fromEntries(prompt.arguments.map((argument, i) => [argument.name, `$${i + 1}`]))
+                  : {},
+              ).then(
+                (template) =>
                   template?.messages
                     .map((message) => (message.content.type === "text" ? message.content.text : ""))
                     .join("\n") || "",
-                )
-              })
+              )
             },
             hints: prompt.arguments?.map((_, i) => `$${i + 1}`) ?? [],
           }

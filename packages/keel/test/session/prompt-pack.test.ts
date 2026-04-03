@@ -38,21 +38,23 @@ test("assembles pack fragments in configured pack order", async () => {
   }
 })
 
-test("keeps coding default assembly unchanged when pack fragments are empty", async () => {
+test("coding pack contributes prompt fragments when loaded", async () => {
   await using tmp = await tmpdir({ config: { packs: ["coding"] } })
 
   await Instance.provide({
     directory: tmp.path,
     fn: async () => {
-      expect(await SystemPrompt.packFragments()).toEqual([])
+      const fragments = await SystemPrompt.packFragments()
+      expect(fragments.length).toBeGreaterThan(0)
+      expect(fragments[0]).toContain("Coding Context")
       expect(
         SystemPrompt.compose({
           env: ["env"],
-          packs: [],
+          packs: fragments,
           skills: "skills",
           instructions: ["instructions"],
         }),
-      ).toEqual(["env", "skills", "instructions"])
+      ).toEqual(["env", ...fragments, "skills", "instructions"])
     },
   })
 })

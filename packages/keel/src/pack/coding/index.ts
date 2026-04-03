@@ -9,9 +9,14 @@ import { LspTool } from "@/tool/lsp"
 import { PlanExitTool } from "@/tool/plan"
 import { Flag } from "@/flag/flag"
 import type { Pack } from "../pack"
+import { codingAgents } from "./agents"
+
+import CODING_CONTEXT from "./prompt/coding-context.txt"
 
 export const codingPack: Pack = {
   id: "coding",
+  agents: codingAgents,
+  instructions: ["AGENTS.md", ...(Flag.KEEL_DISABLE_CLAUDE_CODE_PROMPT ? [] : ["CLAUDE.md"]), "CONTEXT.md"],
   tools: [
     BashTool,
     CodeSearchTool,
@@ -20,9 +25,15 @@ export const codingPack: Pack = {
     BatchTool,
     ...(Flag.KEEL_EXPERIMENTAL_PLAN_MODE && Flag.KEEL_CLIENT === "cli" ? [PlanExitTool] : []),
   ],
+  prompts: [CODING_CONTEXT],
   bootstrap: async () => {
     await Format.init()
     await LSP.init()
     await Vcs.init()
+  },
+  onFileWrite: async (filepath) => {
+    await Format.file(filepath)
+    await LSP.touchFile(filepath, true)
+    return LSP.diagnostics()
   },
 }

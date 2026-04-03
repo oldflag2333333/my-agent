@@ -1,11 +1,11 @@
-import { afterEach, beforeEach, describe, test, expect, spyOn } from "bun:test"
+import { afterEach, beforeEach, describe, test, expect, mock } from "bun:test"
 import path from "path"
 import fs from "fs/promises"
 import { WriteTool } from "../../src/tool/write"
-import { LSP } from "../../src/lsp"
 import { Instance } from "../../src/project/instance"
 import { tmpdir } from "../fixture/fixture"
 import { SessionID, MessageID } from "../../src/session/schema"
+import { packs } from "../../src/pack"
 
 const ctx = {
   sessionID: SessionID.make("ses_test-write-session"),
@@ -22,17 +22,18 @@ afterEach(async () => {
   await Instance.disposeAll()
 })
 
-let touch: ReturnType<typeof spyOn>
-let diagnostics: ReturnType<typeof spyOn>
+let hook: { id: string; onFileWrite: ReturnType<typeof mock> }
 
 beforeEach(() => {
-  touch = spyOn(LSP, "touchFile").mockResolvedValue(undefined)
-  diagnostics = spyOn(LSP, "diagnostics").mockResolvedValue({})
+  hook = {
+    id: "coding",
+    onFileWrite: mock(async () => ({})),
+  }
+  packs.push(hook)
 })
 
 afterEach(() => {
-  touch.mockRestore()
-  diagnostics.mockRestore()
+  packs.splice(packs.indexOf(hook), 1)
 })
 
 describe("tool.write", () => {
