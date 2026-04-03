@@ -66,6 +66,58 @@ Read our [contributing guidelines](./CONTRIBUTING.md) before submitting a pull r
 
 If you are working on a project that uses "keel" as part of its name (for example, "keel-dashboard"), please add a note to your README clarifying it is not built by the Keel team and is not affiliated with us.
 
+## Architecture
+
+Keel uses a **pack system** to bundle capabilities. Packs sit above the plugin layer and provide opinionated configurations for specific use cases.
+
+### Core vs Packs
+
+**Core** provides domain-neutral foundations:
+
+- Workspace identity and session runtime
+- Permission engine and tool protocol
+- Generic tools: `read`, `edit`, `write`, `glob`, `grep`, `task`, `todo`, `question`, `webfetch`, `websearch`
+- Core agents: `general`, `compaction`, `title`, `summary`
+
+**Packs** add domain-specific capabilities:
+
+| Pack     | Description                                                      |
+| -------- | ---------------------------------------------------------------- |
+| `coding` | Full coding assistant with bash, LSP, code search, file watchers |
+| `notes`  | Minimal workspace for note-taking (no code execution)            |
+
+### Default Configuration
+
+By default, Keel loads the `coding` pack:
+
+```json
+{
+  "packs": ["coding"]
+}
+```
+
+Existing users require no changes. The `coding` pack preserves all previous behavior.
+
+### Core-Only Mode
+
+To run without any domain-specific packs, use an empty array:
+
+```json
+{
+  "packs": []
+}
+```
+
+This gives you a neutral assistant with only core tools and agents. Useful for building custom workflows from scratch.
+
+### Migration Path
+
+If you are upgrading from an earlier version:
+
+1. **No action required** — the `coding` pack loads by default
+2. Your existing agents (`build`, `plan`), tools, and TUI remain unchanged
+3. Custom plugins continue to work without modification
+
 ## FAQ
 
 **How is this different from Claude Code?**
