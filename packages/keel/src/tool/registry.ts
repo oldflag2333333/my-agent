@@ -1,10 +1,7 @@
-import { PlanExitTool } from "./plan"
 import { QuestionTool } from "./question"
-import { BashTool } from "./bash"
 import { EditTool } from "./edit"
 import { GlobTool } from "./glob"
 import { GrepTool } from "./grep"
-import { BatchTool } from "./batch"
 import { ReadTool } from "./read"
 import { TaskTool } from "./task"
 import { TodoWriteTool } from "./todo"
@@ -21,17 +18,15 @@ import z from "zod"
 import { Plugin } from "../plugin"
 import { ProviderID, type ModelID } from "../provider/schema"
 import { WebSearchTool } from "./websearch"
-import { CodeSearchTool } from "./codesearch"
 import { Flag } from "@/flag/flag"
 import { Log } from "@/util/log"
-import { LspTool } from "./lsp"
 import { Truncate } from "./truncate"
-import { ApplyPatchTool } from "./apply_patch"
 import { Glob } from "../util/glob"
 import { pathToFileURL } from "url"
 import { Effect, Layer, ServiceMap } from "effect"
 import { InstanceState } from "@/effect/instance-state"
 import { makeRuntime } from "@/effect/run-service"
+import { PackRegistry, packs } from "@/pack"
 
 export namespace ToolRegistry {
   const log = Log.create({ service: "tool.registry" })
@@ -113,12 +108,21 @@ export namespace ToolRegistry {
 
       const all = Effect.fn("ToolRegistry.all")(function* (custom: Tool.Info[]) {
         const cfg = yield* config.get()
+        PackRegistry.init(cfg.packs, packs)
         const question = ["app", "cli", "desktop"].includes(Flag.KEEL_CLIENT) || Flag.KEEL_ENABLE_QUESTION_TOOL
+        const pack = yield* Effect.promise(() => PackRegistry.tools())
+        const next = pack.filter((tool) => {
+          if (tool.id === "batch") return cfg.experimental?.batch_tool === true
+          return true
+        })
+        const bash = next.filter((tool) => tool.id === "bash")
+        const code = next.filter((tool) => tool.id === "codesearch")
+        const tail = next.filter((tool) => tool.id !== "bash" && tool.id !== "codesearch")
 
         return [
           InvalidTool,
           ...(question ? [QuestionTool] : []),
-          BashTool,
+          ...bash,
           ReadTool,
           GlobTool,
           GrepTool,
@@ -128,12 +132,9 @@ export namespace ToolRegistry {
           WebFetchTool,
           TodoWriteTool,
           WebSearchTool,
-          CodeSearchTool,
+          ...code,
           SkillTool,
-          ApplyPatchTool,
-          ...(Flag.KEEL_EXPERIMENTAL_LSP_TOOL ? [LspTool] : []),
-          ...(cfg.experimental?.batch_tool === true ? [BatchTool] : []),
-          ...(Flag.KEEL_EXPERIMENTAL_PLAN_MODE && Flag.KEEL_CLIENT === "cli" ? [PlanExitTool] : []),
+          ...tail,
           ...custom,
         ]
       })

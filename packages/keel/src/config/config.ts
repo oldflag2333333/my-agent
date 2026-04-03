@@ -907,6 +907,7 @@ export namespace Config {
           "Enable or disable snapshot tracking. When false, filesystem snapshots are not recorded and undoing or reverting will not undo/redo file changes. Defaults to true.",
         ),
       plugin: PluginSpec.array().optional(),
+      packs: z.array(z.string()).default(["coding"]).describe("Ordered internal pack IDs to load at bootstrap."),
       share: z
         .enum(["manual", "auto", "disabled"])
         .optional()
@@ -1242,13 +1243,13 @@ export namespace Config {
         const loadFile = Effect.fnUntraced(function* (filepath: string) {
           log.info("loading", { path: filepath })
           const text = yield* readConfigFile(filepath)
-          if (!text) return {} as Info
+          if (!text) return { packs: ["coding"] } as Info
           return yield* loadConfig(text, { path: filepath })
         })
 
         const loadGlobal = Effect.fnUntraced(function* () {
           let result: Info = pipe(
-            {},
+            { packs: ["coding"] } as Info,
             mergeDeep(yield* loadFile(path.join(Global.Path.config, "config.json"))),
             mergeDeep(yield* loadFile(path.join(Global.Path.config, "keel.json"))),
             mergeDeep(yield* loadFile(path.join(Global.Path.config, "keel.jsonc"))),
@@ -1278,7 +1279,7 @@ export namespace Config {
             Effect.tapError((error) =>
               Effect.sync(() => log.error("failed to load global config, using defaults", { error: String(error) })),
             ),
-            Effect.orElseSucceed((): Info => ({})),
+            Effect.orElseSucceed((): Info => ({ packs: ["coding"] })),
           ),
           Duration.infinity,
         )
@@ -1290,7 +1291,7 @@ export namespace Config {
         const loadInstanceState = Effect.fnUntraced(function* (ctx: InstanceContext) {
           const auth = yield* authSvc.all().pipe(Effect.orDie)
 
-          let result: Info = {}
+          let result: Info = { packs: ["coding"] }
           for (const [key, value] of Object.entries(auth)) {
             if (value.type === "wellknown") {
               const url = key.replace(/\/+$/, "")

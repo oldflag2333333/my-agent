@@ -1504,15 +1504,16 @@ NOTE: At any point in time through this workflow you should feel free to ask the
 
                 yield* plugin.trigger("experimental.chat.messages.transform", {}, { messages: msgs })
 
-                const [skills, env, instructions, modelMsgs] = yield* Effect.promise(() =>
+                const [skills, env, packs, instructions, modelMsgs] = yield* Effect.promise(() =>
                   Promise.all([
                     SystemPrompt.skills(agent),
                     SystemPrompt.environment(model),
+                    SystemPrompt.packFragments(),
                     InstructionPrompt.system(),
                     MessageV2.toModelMessages(msgs, model),
                   ]),
                 )
-                const system = [...env, ...(skills ? [skills] : []), ...instructions]
+                const system = SystemPrompt.compose({ env, packs, skills, instructions })
                 const format = lastUser.format ?? { type: "text" as const }
                 if (format.type === "json_schema") system.push(STRUCTURED_OUTPUT_SYSTEM_PROMPT)
                 const result = yield* handle.process({

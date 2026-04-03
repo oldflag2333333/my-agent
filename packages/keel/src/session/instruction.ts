@@ -4,6 +4,7 @@ import { Global } from "../global"
 import { Filesystem } from "../util/filesystem"
 import { Config } from "../config/config"
 import { Instance } from "../project/instance"
+import { PackRegistry, packs } from "@/pack"
 import { Flag } from "@/flag/flag"
 import { Log } from "../util/log"
 import { Glob } from "../util/glob"
@@ -17,16 +18,28 @@ const FILES = [
   "CONTEXT.md", // deprecated
 ]
 
-function globalFiles() {
-  const files = []
-  if (Flag.KEEL_CONFIG_DIR) {
-    files.push(path.join(Flag.KEEL_CONFIG_DIR, "AGENTS.md"))
+function globalFiles(files: string[]) {
+  const result = []
+  if (files.includes("AGENTS.md")) {
+    if (Flag.KEEL_CONFIG_DIR) {
+      result.push(path.join(Flag.KEEL_CONFIG_DIR, "AGENTS.md"))
+    }
+    result.push(path.join(Global.Path.config, "AGENTS.md"))
   }
-  files.push(path.join(Global.Path.config, "AGENTS.md"))
-  if (!Flag.KEEL_DISABLE_CLAUDE_CODE_PROMPT) {
-    files.push(path.join(os.homedir(), ".claude", "CLAUDE.md"))
+  if (files.includes("CLAUDE.md") && !Flag.KEEL_DISABLE_CLAUDE_CODE_PROMPT) {
+    result.push(path.join(os.homedir(), ".claude", "CLAUDE.md"))
   }
-  return files
+  return result
+}
+
+async function names(config?: Config.Info) {
+  const cfg = config ?? (await Config.get())
+  if (!PackRegistry.configured(cfg.packs)) {
+    PackRegistry.init(cfg.packs, packs)
+  }
+  const pack = await PackRegistry.instructions()
+  const base = cfg.packs.includes("coding") ? FILES : []
+  return Array.from(new Set([...base, ...pack]))
 }
 
 async function resolveRelative(instruction: string): Promise<string[]> {
@@ -34,9 +47,7 @@ async function resolveRelative(instruction: string): Promise<string[]> {
     return Filesystem.globUp(instruction, Instance.directory, Instance.worktree).catch(() => [])
   }
   if (!Flag.KEEL_CONFIG_DIR) {
-    log.warn(
-      `Skipping relative instruction "${instruction}" - no KEEL_CONFIG_DIR set while project config is disabled`,
-    )
+    log.warn(`Skipping relative instruction "${instruction}" - no KEEL_CONFIG_DIR set while project config is disabled`)
     return []
   }
   return Filesystem.globUp(instruction, Flag.KEEL_CONFIG_DIR, Flag.KEEL_CONFIG_DIR).catch(() => [])
@@ -71,10 +82,11 @@ export namespace InstructionPrompt {
 
   export async function systemPaths() {
     const config = await Config.get()
+    const files = await names(config)
     const paths = new Set<string>()
 
     if (!Flag.KEEL_DISABLE_PROJECT_CONFIG) {
-      for (const file of FILES) {
+      for (const file of files) {
         const matches = await Filesystem.findUp(file, Instance.directory, Instance.worktree)
         if (matches.length > 0) {
           matches.forEach((p) => {
@@ -85,7 +97,7 @@ export namespace InstructionPrompt {
       }
     }
 
-    for (const file of globalFiles()) {
+    for (const file of globalFiles(files)) {
       if (await Filesystem.exists(file)) {
         paths.add(path.resolve(file))
         break
@@ -159,7 +171,7 @@ export namespace InstructionPrompt {
   }
 
   export async function find(dir: string) {
-    for (const file of FILES) {
+    for (const file of await names()) {
       const filepath = path.resolve(path.join(dir, file))
       if (await Filesystem.exists(filepath)) return filepath
     }

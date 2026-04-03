@@ -7,7 +7,7 @@ test("freezes default tool roster snapshot from registry", async () => {
   expect(src).toContain(`return [
           InvalidTool,
           ...(question ? [QuestionTool] : []),
-          BashTool,
+          ...bash,
           ReadTool,
           GlobTool,
           GrepTool,
@@ -17,12 +17,9 @@ test("freezes default tool roster snapshot from registry", async () => {
           WebFetchTool,
           TodoWriteTool,
           WebSearchTool,
-          CodeSearchTool,
+          ...code,
           SkillTool,
-          ApplyPatchTool,
-          ...(Flag.KEEL_EXPERIMENTAL_LSP_TOOL ? [LspTool] : []),
-          ...(cfg.experimental?.batch_tool === true ? [BatchTool] : []),
-          ...(Flag.KEEL_EXPERIMENTAL_PLAN_MODE && Flag.KEEL_CLIENT === "cli" ? [PlanExitTool] : []),
+          ...tail,
           ...custom,
         ]`)
 })

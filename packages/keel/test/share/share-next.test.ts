@@ -8,7 +8,7 @@ test("ShareNext.request uses legacy share API without active org account", async
   const originalConfigGet = Config.get
 
   Account.active = mock(async () => undefined)
-  Config.get = mock(async () => ({ enterprise: { url: "https://legacy-share.example.com" } }))
+  Config.get = mock(async () => ({ packs: ["coding"], enterprise: { url: "https://legacy-share.example.com" } }))
 
   try {
     const req = await ShareNext.request()

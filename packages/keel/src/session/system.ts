@@ -1,5 +1,4 @@
-import { Ripgrep } from "../file/ripgrep"
-
+import { Config } from "../config/config"
 import { Instance } from "../project/instance"
 
 import PROMPT_ANTHROPIC from "./prompt/anthropic.txt"
@@ -14,9 +13,20 @@ import PROMPT_TRINITY from "./prompt/trinity.txt"
 import type { Provider } from "@/provider/provider"
 import type { Agent } from "@/agent/agent"
 import { Permission } from "@/permission"
+import { PackRegistry, packs } from "@/pack"
 import { Skill } from "@/skill"
 
 export namespace SystemPrompt {
+  async function init() {
+    const cfg = await Config.get()
+    if (PackRegistry.configured(cfg.packs)) return
+    PackRegistry.init(cfg.packs, packs)
+  }
+
+  export function base(model: Provider.Model) {
+    return provider(model)
+  }
+
   export function provider(model: Provider.Model) {
     if (model.api.id.includes("gpt-4") || model.api.id.includes("o1") || model.api.id.includes("o3"))
       return [PROMPT_BEAST]
@@ -47,17 +57,19 @@ export namespace SystemPrompt {
         `  Today's date: ${new Date().toDateString()}`,
         `</env>`,
         `<directories>`,
-        `  ${
-          project.vcs === "git" && false
-            ? await Ripgrep.tree({
-                cwd: Instance.directory,
-                limit: 50,
-              })
-            : ""
-        }`,
+        `  `,
         `</directories>`,
       ].join("\n"),
     ]
+  }
+
+  export async function packFragments() {
+    await init()
+    return PackRegistry.prompts()
+  }
+
+  export function compose(input: { env: string[]; packs: string[]; skills?: string; instructions: string[] }) {
+    return [...input.env, ...input.packs, ...(input.skills ? [input.skills] : []), ...input.instructions]
   }
 
   export async function skills(agent: Agent.Info) {
