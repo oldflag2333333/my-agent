@@ -4,12 +4,40 @@ import { fileURLToPath } from "url"
 const dir = fileURLToPath(new URL("..", import.meta.url))
 process.chdir(dir)
 
-import { $ } from "bun"
 import path from "path"
+
+const $ = Bun.$
 
 import { createClient } from "@hey-api/openapi-ts"
 
-await $`bun dev generate > ${dir}/openapi.json`.cwd(path.resolve(dir, "../../opencode"))
+await $`bun dev generate > ${dir}/openapi.json`.cwd(path.resolve(dir, "../../keel"))
+
+await createClient({
+  input: "./openapi.json",
+  output: {
+    path: "./src/gen",
+    tsConfigPath: path.join(dir, "tsconfig.json"),
+    clean: true,
+  },
+  plugins: [
+    {
+      name: "@hey-api/typescript",
+      exportFromIndex: false,
+    },
+    {
+      name: "@hey-api/sdk",
+      instance: "KeelClient",
+      exportFromIndex: false,
+      auth: false,
+      paramsStructure: "flat",
+    },
+    {
+      name: "@hey-api/client-fetch",
+      exportFromIndex: false,
+      baseUrl: "http://localhost:4096",
+    },
+  ],
+})
 
 await createClient({
   input: "./openapi.json",
@@ -25,7 +53,7 @@ await createClient({
     },
     {
       name: "@hey-api/sdk",
-      instance: "OpencodeClient",
+      instance: "KeelClient",
       exportFromIndex: false,
       auth: false,
       paramsStructure: "flat",

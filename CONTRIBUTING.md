@@ -1,6 +1,6 @@
-# Contributing to OpenCode
+# Contributing to Keel
 
-We want to make it easy for you to contribute to OpenCode. Here are the most common type of changes that get merged:
+We want to make it easy for you to contribute to Keel. Here are the most common type of changes that get merged:
 
 - Bug fixes
 - Additional LSPs / Formatters
@@ -14,10 +14,10 @@ However, any UI or core product feature must go through a design review with the
 
 If you are unsure if a PR would be accepted, feel free to ask a maintainer or look for issues with any of the following labels:
 
-- [`help wanted`](https://github.com/anomalyco/opencode/issues?q=is%3Aissue%20state%3Aopen%20label%3Ahelp-wanted)
-- [`good first issue`](https://github.com/anomalyco/opencode/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22good%20first%20issue%22)
-- [`bug`](https://github.com/anomalyco/opencode/issues?q=is%3Aissue%20state%3Aopen%20label%3Abug)
-- [`perf`](https://github.com/anomalyco/opencode/issues?q=is%3Aopen%20is%3Aissue%20label%3A%22perf%22)
+- [`help wanted`](https://github.com/anomalyco/keel/issues?q=is%3Aissue%20state%3Aopen%20label%3Ahelp-wanted)
+- [`good first issue`](https://github.com/anomalyco/keel/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22good%20first%20issue%22)
+- [`bug`](https://github.com/anomalyco/keel/issues?q=is%3Aissue%20state%3Aopen%20label%3Abug)
+- [`perf`](https://github.com/anomalyco/keel/issues?q=is%3Aopen%20is%3Aissue%20label%3A%22perf%22)
 
 > [!NOTE]
 > PRs that ignore these guardrails will likely be closed.
@@ -29,7 +29,7 @@ Want to take on an issue? Leave a comment and a maintainer may assign it to you 
 New providers shouldn't require many if ANY code changes, but if you want to add support for a new provider first make a PR to:
 https://github.com/anomalyco/models.dev
 
-## Developing OpenCode
+## Developing Keel
 
 - Requirements: Bun 1.3+
 - Install dependencies and start the dev server from the repo root:
@@ -41,13 +41,13 @@ https://github.com/anomalyco/models.dev
 
 ### Running against a different directory
 
-By default, `bun dev` runs OpenCode in the `packages/opencode` directory. To run it against a different directory or repository:
+By default, `bun dev` runs Keel in the `packages/keel` directory. To run it against a different directory or repository:
 
 ```bash
 bun dev <directory>
 ```
 
-To run OpenCode in the root of the opencode repo itself:
+To run Keel in the root of the keel repo itself:
 
 ```bash
 bun dev .
@@ -58,28 +58,28 @@ bun dev .
 To compile a standalone executable:
 
 ```bash
-./packages/opencode/script/build.ts --single
+./packages/keel/script/build.ts --single
 ```
 
 Then run it with:
 
 ```bash
-./packages/opencode/dist/opencode-<platform>/bin/opencode
+./packages/keel/dist/keel-<platform>/bin/keel
 ```
 
 Replace `<platform>` with your platform (e.g., `darwin-arm64`, `linux-x64`).
 
 - Core pieces:
-  - `packages/opencode`: OpenCode core business logic, server, and TUI
-  - `packages/opencode/src/cli/cmd/tui/`: The TUI code, written in SolidJS with opentui
-  - `packages/plugin`: Source for `@opencode-ai/plugin`
+  - `packages/keel`: Keel core business logic, server, and TUI
+  - `packages/keel/src/cli/cmd/tui/`: The TUI code, written in SolidJS with opentui
+  - `packages/plugin`: Source for `@keel-ai/plugin`
   - `packages/sdk/js`: JavaScript/TypeScript SDK
   - `packages/util`: Shared utilities
   - `packages/script`: Build and utility scripts
 
-### Understanding bun dev vs opencode
+### Understanding bun dev vs keel
 
-During development, `bun dev` is the local equivalent of the built `opencode` command. Both run the same CLI interface:
+During development, `bun dev` is the local equivalent of the built `keel` command. Both run the same CLI interface:
 
 ```bash
 # Development (from project root)
@@ -88,14 +88,14 @@ bun dev serve            # Start headless API server
 bun dev <directory>      # Start TUI in specific directory
 
 # Production
-opencode --help          # Show all available commands
-opencode serve           # Start headless API server
-opencode <directory>     # Start TUI in specific directory
+keel --help              # Show all available commands
+keel serve               # Start headless API server
+keel <directory>         # Start TUI in specific directory
 ```
 
 ### Running the API Server
 
-To start the OpenCode headless API server:
+To start the Keel headless API server:
 
 ```bash
 bun dev serve
@@ -108,7 +108,7 @@ bun dev serve --port 8080
 ```
 
 > [!NOTE]
-> If you make changes to the API or SDK (e.g. `packages/opencode/src/server/server.ts`), run `./packages/sdk/js/script/build.ts` to regenerate the JavaScript SDK.
+> If you make changes to the API or SDK (e.g. `packages/keel/src/server/server.ts`), run `./packages/sdk/js/script/build.ts` to regenerate the JavaScript SDK.
 
 Please try to follow the [style guide](./AGENTS.md)
 
@@ -116,17 +116,17 @@ Please try to follow the [style guide](./AGENTS.md)
 
 Bun debugging is currently rough around the edges. We hope this guide helps you get set up and avoid some pain points.
 
-The most reliable way to debug OpenCode is to run it manually in a terminal via `bun run --inspect=<url> dev ...` and attach
+The most reliable way to debug Keel is to run it manually in a terminal via `bun run --inspect=<url> dev ...` and attach
 your debugger via that URL. Other methods can result in breakpoints being mapped incorrectly, at least in VSCode (YMMV).
 
 Caveats:
 
-- If you want to run the OpenCode TUI and have breakpoints triggered in the server code, you might need to run `bun dev spawn` instead of
+- If you want to run the Keel TUI and have breakpoints triggered in the server code, you might need to run `bun dev spawn` instead of
   the usual `bun dev`. This is because `bun dev` runs the server in a worker thread and breakpoints might not work there.
 - If `spawn` does not work for you, you can debug the server separately:
-  - Debug server: `bun run --inspect=ws://localhost:6499/ --cwd packages/opencode ./src/index.ts serve --port 4096`,
-    then attach TUI with `opencode attach http://localhost:4096`
-  - Debug TUI: `bun run --inspect=ws://localhost:6499/ --cwd packages/opencode --conditions=browser ./src/index.ts`
+  - Debug server: `bun run --inspect=ws://localhost:6499/ --cwd packages/keel ./src/index.ts serve --port 4096`,
+    then attach TUI with `keel attach http://localhost:4096`
+  - Debug TUI: `bun run --inspect=ws://localhost:6499/ --cwd packages/keel --conditions=browser ./src/index.ts`
 
 Other tips and tricks:
 
@@ -180,7 +180,7 @@ PR titles should follow conventional commit standards:
 
 You can optionally include a scope to indicate which package is affected:
 
-- `feat(opencode):` feature in the opencode package
+- `feat(keel):` feature in the keel package
 - `feat(plugin):` feature in the plugin package
 - `feat(sdk):` feature in the sdk package
 - `fix(util):` bug fix in the util package
@@ -191,7 +191,7 @@ Examples:
 - `docs: update contributing guidelines`
 - `fix: resolve crash on startup`
 - `feat: add dark mode support`
-- `feat(opencode): add new command`
+- `feat(keel): add new command`
 - `fix(plugin): resolve loading issue`
 - `chore: bump dependency versions`
 
@@ -210,7 +210,7 @@ These are not strictly enforced, they are just general guidelines:
 
 ## Feature Requests
 
-For net-new functionality, start with a design conversation. Open an issue describing the problem, your proposed approach (optional), and why it belongs in OpenCode. The core team will help decide whether it should move forward; please wait for that approval instead of opening a feature PR directly.
+For net-new functionality, start with a design conversation. Open an issue describing the problem, your proposed approach (optional), and why it belongs in Keel. The core team will help decide whether it should move forward; please wait for that approval instead of opening a feature PR directly.
 
 ## Trust & Vouch System
 
@@ -219,7 +219,7 @@ This project uses [vouch](https://github.com/mitchellh/vouch) to manage contribu
 ### How it works
 
 - **Vouched users** are explicitly trusted contributors.
-- **Denounced users** are explicitly blocked. Issues and pull requests from denounced users are automatically closed. If you have been denounced, you can request to be unvouched by reaching out to a maintainer on [Discord](https://opencode.ai/discord)
+- **Denounced users** are explicitly blocked. Issues and pull requests from denounced users are automatically closed. If you have been denounced, you can request to be unvouched by reaching out to a maintainer on [Discord](https://keel.ai/discord)
 - **Everyone else** can participate normally — you don't need to be vouched to open issues or PRs.
 
 ### For maintainers

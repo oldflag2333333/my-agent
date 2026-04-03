@@ -1,31 +1,29 @@
-# OpenCode
+# Keel
 
 The open source AI coding agent.
 
-[![Discord](https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord)](https://opencode.ai/discord)
-[![npm](https://img.shields.io/npm/v/opencode-ai?style=flat-square)](https://www.npmjs.com/package/opencode-ai)
-[![Build status](https://img.shields.io/github/actions/workflow/status/anomalyco/opencode/publish.yml?style=flat-square&branch=dev)](https://github.com/anomalyco/opencode/actions/workflows/publish.yml)
+[![Discord](https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord)](https://keel.ai/discord)
 
 ## About
 
-OpenCode is a TUI-based AI coding agent. This repo is a foundation for building TUI-agent products. It provides the core agent runtime, plugin system, and SDKs needed to build AI-powered terminal applications.
+Keel is a TUI-based AI coding agent. This repo is a foundation for building TUI-agent products. It provides the core agent runtime, plugin system, and SDKs needed to build AI-powered terminal applications.
 
 ## Packages
 
 This monorepo contains the following packages:
 
-| Package             | Description                                    |
-| ------------------- | ---------------------------------------------- |
-| `packages/opencode` | Core agent runtime and TUI interface           |
-| `packages/plugin`   | Plugin system for extending agent capabilities |
-| `packages/script`   | Build and utility scripts                      |
-| `packages/sdk/js`   | JavaScript/TypeScript SDK for integrations     |
-| `packages/util`     | Shared utility libraries                       |
+| Package           | Description                                    |
+| ----------------- | ---------------------------------------------- |
+| `packages/keel`   | Core agent runtime and TUI interface           |
+| `packages/plugin` | Plugin system for extending agent capabilities |
+| `packages/script` | Build and utility scripts                      |
+| `packages/sdk/js` | JavaScript/TypeScript SDK for integrations     |
+| `packages/util`   | Shared utility libraries                       |
 
 ## Installation
 
 ```bash
-npm i -g opencode-ai@latest
+npm i -g @keel-ai/cli@latest
 ```
 
 Or use any package manager (bun, pnpm, yarn).
@@ -33,19 +31,19 @@ Or use any package manager (bun, pnpm, yarn).
 ## Quick Start
 
 ```bash
-# Start OpenCode TUI in current directory
-opencode
+# Start Keel TUI in current directory
+keel
 
 # Start in a specific directory
-opencode /path/to/project
+keel /path/to/project
 
 # Start headless API server
-opencode serve
+keel serve
 ```
 
 ## Agents
 
-OpenCode includes two built-in agents you can switch between with the `Tab` key.
+Keel includes two built-in agents you can switch between with the `Tab` key.
 
 - **build** - Default, full-access agent for development work
 - **plan** - Read-only agent for analysis and code exploration
@@ -58,15 +56,15 @@ This is used internally and can be invoked using `@general` in messages.
 
 ## Documentation
 
-Learn more at [opencode.ai/docs](https://opencode.ai/docs).
+Learn more at [keel.ai/docs](https://keel.ai/docs).
 
 ## Contributing
 
 Read our [contributing guidelines](./CONTRIBUTING.md) before submitting a pull request.
 
-## Building on OpenCode
+## Building on Keel
 
-If you are working on a project that uses "opencode" as part of its name (for example, "opencode-dashboard"), please add a note to your README clarifying it is not built by the OpenCode team and is not affiliated with us.
+If you are working on a project that uses "keel" as part of its name (for example, "keel-dashboard"), please add a note to your README clarifying it is not built by the Keel team and is not affiliated with us.
 
 ## FAQ
 
@@ -79,4 +77,4 @@ If you are working on a project that uses "opencode" as part of its name (for ex
 
 ---
 
-[Discord](https://discord.gg/opencode) | [X.com](https://x.com/opencode)
+[Discord](https://discord.gg/keel)

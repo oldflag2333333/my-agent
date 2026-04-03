@@ -1,9 +1,11 @@
 #!/usr/bin/env bun
 
-import { Script } from "@opencode-ai/script"
+import { Script } from "@keel-ai/script"
+import { Target } from "@keel-ai/script/target"
 import { $ } from "bun"
 
 const output = [`version=${Script.version}`]
+const repo = process.env.GH_REPO ?? Target.repo
 
 if (!Script.preview) {
   const sha = process.env.GITHUB_SHA ?? (await $`git rev-parse HEAD`.text()).trim()
@@ -13,21 +15,20 @@ if (!Script.preview) {
     .text()
     .catch(() => "No notable changes")
   const dir = process.env.RUNNER_TEMP ?? "/tmp"
-  const notesFile = `${dir}/opencode-release-notes.txt`
+  const notesFile = `${dir}/keel-release-notes.txt`
   await Bun.write(notesFile, body)
-  await $`gh release create v${Script.version} -d --title "v${Script.version}" --notes-file ${notesFile}`
-  const release = await $`gh release view v${Script.version} --json tagName,databaseId`.json()
+  await $`gh release create v${Script.version} -d --title "v${Script.version}" --notes-file ${notesFile} --repo ${repo}`
+  const release = await $`gh release view v${Script.version} --json tagName,databaseId --repo ${repo}`.json()
   output.push(`release=${release.databaseId}`)
   output.push(`tag=${release.tagName}`)
 } else if (Script.channel === "beta") {
-  await $`gh release create v${Script.version} -d --title "v${Script.version}" --repo ${process.env.GH_REPO}`
-  const release =
-    await $`gh release view v${Script.version} --json tagName,databaseId --repo ${process.env.GH_REPO}`.json()
+  await $`gh release create v${Script.version} -d --title "v${Script.version}" --repo ${repo}`
+  const release = await $`gh release view v${Script.version} --json tagName,databaseId --repo ${repo}`.json()
   output.push(`release=${release.databaseId}`)
   output.push(`tag=${release.tagName}`)
 }
 
-output.push(`repo=${process.env.GH_REPO}`)
+output.push(`repo=${repo}`)
 
 if (process.env.GITHUB_OUTPUT) {
   await Bun.write(process.env.GITHUB_OUTPUT, output.join("\n"))

@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 
-import { Script } from "@opencode-ai/script"
+import { Script } from "@keel-ai/script"
+import { Target } from "@keel-ai/script/target"
 import { $ } from "bun"
 import { fileURLToPath } from "url"
 
@@ -33,6 +34,8 @@ Add highlights before publishing. Delete this section if no highlights.
 `
 
 console.log("=== publishing ===\n")
+
+const repo = process.env.GH_REPO ?? Target.repo
 
 const pkgjsons = await Array.fromAsync(
   new Bun.Glob("**/package.json").scan({
@@ -67,14 +70,20 @@ if (Script.release) {
     await new Promise((resolve) => setTimeout(resolve, 5_000))
   }
 
-  await import(`../packages/desktop/scripts/finalize-latest-json.ts`)
-  await import(`../packages/desktop-electron/scripts/finalize-latest-yml.ts`)
+  for (const file of [
+    "../packages/desktop/scripts/finalize-latest-json.ts",
+    "../packages/desktop-electron/scripts/finalize-latest-yml.ts",
+  ]) {
+    const path = fileURLToPath(new URL(file, import.meta.url))
+    if (!(await Bun.file(path).exists())) continue
+    await import(path)
+  }
 
-  await $`gh release edit v${Script.version} --draft=false --repo ${process.env.GH_REPO}`
+  await $`gh release edit v${Script.version} --draft=false --repo ${repo}`
 }
 
 console.log("\n=== cli ===\n")
-await import(`../packages/opencode/script/publish.ts`)
+await import(`../packages/keel/script/publish.ts`)
 
 console.log("\n=== sdk ===\n")
 await import(`../packages/sdk/js/script/publish.ts`)

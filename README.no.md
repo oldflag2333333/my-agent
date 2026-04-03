@@ -1,15 +1,15 @@
 <p align="center">
-  <a href="https://opencode.ai">
+  <a href="https://keel.ai">
     <picture>
-      <img src="https://opencode.ai/logo.png" alt="OpenCode logo">
+      <img src="https://keel.ai/logo.png" alt="Keel logo">
     </picture>
   </a>
 </p>
 <p align="center">Åpen Kilde AI Koding Agent</p>
 <p align="center">
-  <a href="https://opencode.ai/discord"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord" /></a>
-  <a href="https://www.npmjs.com/package/opencode-ai"><img alt="npm" src="https://img.shields.io/npm/v/opencode-ai?style=flat-square" /></a>
-  <a href="https://github.com/anomalyco/opencode/actions/workflows/publish.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/anomalyco/opencode/publish.yml?style=flat-square&branch=dev" /></a>
+  <a href="https://keel.ai/discord"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord" /></a>
+  <a href="https://www.npmjs.com/package/@keel-ai/cli"><img alt="npm" src="https://img.shields.io/npm/v/@keel-ai/cli?style=flat-square" /></a>
+  <a href="https://github.com/anomalyco/keel/actions/workflows/publish.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/anomalyco/keel/publish.yml?style=flat-square&branch=dev" /></a>
 </p>
 
 <p align="center">
@@ -37,12 +37,12 @@
   <a href="README.vi.md">Tiếng Việt</a>
 </p>
 
-![OpenCode Terminal UI](https://opencode.ai/screenshot.png)
+![Keel Terminal UI](https://keel.ai/screenshot.png)
 
 ---
 
-For installation and usage instructions, see the [English README](README.md) or [opencode.ai/docs](https://opencode.ai/docs).
+For installation and usage instructions, see the [English README](README.md) or [keel.ai/docs](https://keel.ai/docs).
 
 ---
 
-[Discord](https://discord.gg/opencode) | [X.com](https://x.com/opencode)
+[Discord](https://discord.gg/keel) | [X.com](https://x.com/keel)

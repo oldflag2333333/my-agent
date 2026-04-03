@@ -1,19 +1,24 @@
-import { createOpencodeClient, createOpencodeServer } from "@opencode-ai/sdk"
-import { pathToFileURL } from "bun"
+import { createKeelClient, createKeelServer } from "@keel-ai/sdk"
+import { readdir } from "node:fs/promises"
+import path from "node:path"
+import { pathToFileURL } from "node:url"
 
-const server = await createOpencodeServer()
-const client = createOpencodeClient({ baseUrl: server.url })
+const server = await createKeelServer()
+const client = createKeelClient({ baseUrl: server.url })
 
-const input = await Array.fromAsync(new Bun.Glob("packages/core/*.ts").scan())
+const input = (await readdir("packages/core", { withFileTypes: true }))
+  .filter((entry) => entry.isFile() && entry.name.endsWith(".ts"))
+  .map((entry) => path.join("packages/core", entry.name))
 
 const tasks: Promise<void>[] = []
 for await (const file of input) {
   console.log("processing", file)
   const session = await client.session.create()
+  if (!session.data) continue
   tasks.push(
-    client.session.prompt({
-      path: { id: session.data.id },
-      body: {
+    client.session
+      .prompt({
+        sessionID: session.data.id,
         parts: [
           {
             type: "file",
@@ -25,8 +30,8 @@ for await (const file of input) {
             text: `Write tests for every public function in this file.`,
           },
         ],
-      },
-    }),
+      })
+      .then(() => {}),
   )
   console.log("done", file)
 }
@@ -34,22 +39,21 @@ for await (const file of input) {
 await Promise.all(
   input.map(async (file) => {
     const session = await client.session.create()
+    if (!session.data) return
     console.log("processing", file)
     await client.session.prompt({
-      path: { id: session.data.id },
-      body: {
-        parts: [
-          {
-            type: "file",
-            mime: "text/plain",
-            url: pathToFileURL(file).href,
-          },
-          {
-            type: "text",
-            text: `Write tests for every public function in this file.`,
-          },
-        ],
-      },
+      sessionID: session.data.id,
+      parts: [
+        {
+          type: "file",
+          mime: "text/plain",
+          url: pathToFileURL(file).href,
+        },
+        {
+          type: "text",
+          text: `Write tests for every public function in this file.`,
+        },
+      ],
     })
     console.log("done", file)
   }),

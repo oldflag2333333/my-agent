@@ -1,5 +1,5 @@
 import type {
-  OpencodeClient,
+  KeelClient,
   Event,
   LspStatus,
   McpStatus,
@@ -12,7 +12,7 @@ import type {
   SessionStatus,
   Workspace,
   Config as SdkConfig,
-} from "@opencode-ai/sdk/v2"
+} from "@keel-ai/sdk/v2"
 import type { CliRenderer, ParsedKey, RGBA } from "@opentui/core"
 import type { JSX, SolidPlugin } from "@opentui/solid"
 import type { Config as PluginConfig, PluginOptions } from "./index.js"
@@ -256,10 +256,13 @@ export type TuiState = {
   mcp: () => ReadonlyArray<TuiSidebarMcpItem>
 }
 
-type TuiConfigView = Pick<PluginConfig, "$schema" | "theme" | "keybinds" | "plugin"> &
-  NonNullable<PluginConfig["tui"]> & {
-    plugin_enabled?: Record<string, boolean>
-  }
+type TuiConfigView = {
+  $schema?: PluginConfig["$schema"]
+  plugin?: PluginConfig["plugin"]
+  theme?: Record<string, unknown>
+  keybinds?: Record<string, unknown>
+  plugin_enabled?: Record<string, boolean>
+}
 
 export type TuiApp = {
   readonly version: string
@@ -416,8 +419,8 @@ export type TuiPluginApi = {
   kv: TuiKV
   state: TuiState
   theme: TuiTheme
-  client: OpencodeClient
-  scopedClient: (workspaceID?: string) => OpencodeClient
+  client: KeelClient
+  scopedClient: (workspaceID?: string) => KeelClient
   workspace: TuiWorkspace
   event: TuiEventBus
   renderer: CliRenderer

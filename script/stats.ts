@@ -1,5 +1,7 @@
 #!/usr/bin/env bun
 
+import { Target } from "@keel-ai/script/target"
+
 async function sendToPostHog(event: string, properties: Record<string, any>) {
   const key = process.env["POSTHOG_KEY"]
 
@@ -59,7 +61,7 @@ async function fetchNpmDownloads(packageName: string): Promise<number> {
       console.warn(`Failed to fetch npm downloads for ${packageName}: ${response.status}`)
       return 0
     }
-    const data: NpmDownloadsRange = await response.json()
+    const data = (await response.json()) as NpmDownloadsRange
     return data.downloads.reduce((total, day) => total + day.downloads, 0)
   } catch (error) {
     console.warn(`Error fetching npm downloads for ${packageName}:`, error)
@@ -73,14 +75,14 @@ async function fetchReleases(): Promise<Release[]> {
   const per = 100
 
   while (true) {
-    const url = `https://api.github.com/repos/anomalyco/opencode/releases?page=${page}&per_page=${per}`
+    const url = Target.api(`/releases?page=${page}&per_page=${per}`)
 
     const response = await fetch(url)
     if (!response.ok) {
       throw new Error(`GitHub API error: ${response.status} ${response.statusText}`)
     }
 
-    const batch: Release[] = await response.json()
+    const batch = (await response.json()) as Release[]
     if (batch.length === 0) break
 
     releases.push(...batch)
@@ -137,15 +139,21 @@ async function save(githubTotal: number, npmDownloads: number) {
     const lines = content.trim().split("\n")
 
     for (let i = lines.length - 1; i >= 0; i--) {
-      const line = lines[i].trim()
+      const item = lines[i]
+      if (!item) continue
+      const line = item.trim()
       if (line.startsWith("|") && !line.includes("Date") && !line.includes("---")) {
         const match = line.match(
           /\|\s*[\d-]+\s*\|\s*([\d,]+)\s*(?:\([^)]*\))?\s*\|\s*([\d,]+)\s*(?:\([^)]*\))?\s*\|\s*([\d,]+)\s*(?:\([^)]*\))?\s*\|/,
         )
         if (match) {
-          previousGithub = parseInt(match[1].replace(/,/g, ""))
-          previousNpm = parseInt(match[2].replace(/,/g, ""))
-          previousTotal = parseInt(match[3].replace(/,/g, ""))
+          const github = match[1]
+          const npm = match[2]
+          const total = match[3]
+          if (!github || !npm || !total) continue
+          previousGithub = parseInt(github.replace(/,/g, ""))
+          previousNpm = parseInt(npm.replace(/,/g, ""))
+          previousTotal = parseInt(total.replace(/,/g, ""))
           break
         }
       }
@@ -188,15 +196,15 @@ async function save(githubTotal: number, npmDownloads: number) {
   )
 }
 
-console.log("Fetching GitHub releases for anomalyco/opencode...\n")
+console.log(`Fetching GitHub releases for ${Target.repo}...\n`)
 
 const releases = await fetchReleases()
 console.log(`\nFetched ${releases.length} releases total\n`)
 
 const { total: githubTotal, stats } = calculate(releases)
 
-console.log("Fetching npm all-time downloads for opencode-ai...\n")
-const npmDownloads = await fetchNpmDownloads("opencode-ai")
+console.log(`Fetching npm all-time downloads for ${Target.main}...\n`)
+const npmDownloads = await fetchNpmDownloads(Target.main)
 console.log(`Fetched npm all-time downloads: ${npmDownloads.toLocaleString()}\n`)
 
 await save(githubTotal, npmDownloads)

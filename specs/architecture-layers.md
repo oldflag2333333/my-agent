@@ -1,8 +1,8 @@
-# OpenCode 项目结构分层分析
+# Keel 项目结构分层分析
 
 ## 一句话结论
 
-这个仓库最稳妥的描述不是“一个严格单核、单向依赖的分层系统”，而是：**两个并列核心（本地 `packages/opencode` 运行时、云端 `packages/console/core` 核心）+ 多个产品/接入端 + 一组共享支撑包 + 部署与分发层**。
+这个仓库最稳妥的描述不是“一个严格单核、单向依赖的分层系统”，而是：**两个并列核心（本地 `packages/keel` 运行时、云端 `packages/console/core` 核心）+ 多个产品/接入端 + 一组共享支撑包 + 部署与分发层**。
 
 也就是说，它**有明显的分层倾向**，但很多目录同时带有“产品切片”“运行时包装”“平台适配”的特征，不能机械地套成标准 Clean Architecture。
 
@@ -16,7 +16,7 @@
 - `infra/`：SST 基础设施编排，负责把 app / console / worker 等部署出去。
 - `sdks/`：面向外部宿主的 SDK / 集成，这里当前主要是 `sdks/vscode`。
 - `nix/`：Nix 打包与环境分发相关配置。
-- `.opencode/`：项目自己的 agent、command、theme、tool 配置。
+- `.keel/`：项目自己的 agent、command、theme、tool 配置。
 - `specs/`：设计说明和结构性文档。
 
 从根 `package.json` 可以确认这是一个 **Bun + Turbo 的 monorepo**，workspace 覆盖 `packages/*`、`packages/console/*`、`packages/sdk/js`、`packages/slack`。
@@ -47,24 +47,24 @@ L5 基础设施、部署与分发层
 
 - `packages/app/`
   - 主应用 UI 壳。
-  - `packages/app/package.json` 显示它依赖 `@opencode-ai/sdk`、`@opencode-ai/ui`、`@opencode-ai/util`。
+  - `packages/app/package.json` 显示它依赖 `@keel-ai/sdk`、`@keel-ai/ui`、`@keel-ai/util`。
   - `packages/app/src/index.ts` 暴露 `AppBaseProviders`、`AppInterface`、`ServerConnection`，说明它不是单页页面集合，而是可复用的应用入口壳。
 
 - `packages/desktop/`
   - Tauri 桌面端。
-  - `packages/desktop/package.json` 直接依赖 `@opencode-ai/app`。
-  - `packages/desktop/src/index.tsx` 直接从 `@opencode-ai/app` 导入 `AppBaseProviders`、`AppInterface`、`ServerConnection`，说明桌面端是“原生壳 + 共享应用层”的组合。
+  - `packages/desktop/package.json` 直接依赖 `@keel-ai/app`。
+  - `packages/desktop/src/index.tsx` 直接从 `@keel-ai/app` 导入 `AppBaseProviders`、`AppInterface`、`ServerConnection`，说明桌面端是“原生壳 + 共享应用层”的组合。
 
 - `packages/desktop-electron/`
   - Electron 桌面端。
-  - `packages/desktop-electron/package.json` 同样依赖 `@opencode-ai/app`。
-  - `packages/desktop-electron/src/renderer/index.tsx` 也直接从 `@opencode-ai/app` 导入应用壳能力，说明它和 Tauri 一样，本质上是另一套宿主壳。
+  - `packages/desktop-electron/package.json` 同样依赖 `@keel-ai/app`。
+  - `packages/desktop-electron/src/renderer/index.tsx` 也直接从 `@keel-ai/app` 导入应用壳能力，说明它和 Tauri 一样，本质上是另一套宿主壳。
 
 ### 3.2 云端产品面
 
 - `packages/console/app/`
   - 面向用户的云端 console 产品入口。
-  - 但它**不是纯前端**，后面会讲到它直接引用 `@opencode-ai/console-core` 的服务和数据层代码。
+  - 但它**不是纯前端**，后面会讲到它直接引用 `@keel-ai/console-core` 的服务和数据层代码。
 
 - `packages/enterprise/`
   - 企业产品面。
@@ -82,7 +82,7 @@ L5 基础设施、部署与分发层
 
 - `packages/slack/`
   - Slack 集成。
-  - `packages/slack/package.json` 依赖 `@opencode-ai/sdk` 和 `@slack/bolt`，说明它通过 SDK 连接 OpenCode 能力，再投射到 Slack 场景里。
+  - `packages/slack/package.json` 依赖 `@keel-ai/sdk` 和 `@slack/bolt`，说明它通过 SDK 连接 Keel 能力，再投射到 Slack 场景里。
 
 ### 3.4 这一层的定位
 
@@ -94,15 +94,15 @@ L5 基础设施、部署与分发层
 
 这一层负责把外部世界的输入转换成系统内部调用。它包括 CLI 入口、HTTP 入口、Worker 入口、SDK 包装和服务路由。
 
-### 4.1 本地入口：`packages/opencode/src/index.ts`
+### 4.1 本地入口：`packages/keel/src/index.ts`
 
-`packages/opencode/src/index.ts` 是本地运行时最关键的入口之一：
+`packages/keel/src/index.ts` 是本地运行时最关键的入口之一：
 
 - 使用 `yargs` 组织 CLI。
 - 注册 `RunCommand`、`ServeCommand`、`McpCommand`、`AcpCommand`、`SessionCommand`、`PluginCommand` 等命令。
 - 启动前还会处理日志、环境变量、数据库迁移。
 
-这说明 `packages/opencode` 不只是一个“库”，而是完整的本地入口程序。
+这说明 `packages/keel` 不只是一个“库”，而是完整的本地入口程序。
 
 ### 4.2 Worker / HTTP 入口
 
@@ -119,7 +119,7 @@ L5 基础设施、部署与分发层
 
 - `packages/console/app/src/routes/*`
   - 这是 console 的页面路由与服务端路由层。
-  - 通过实际搜索可以确认，多个 route 文件直接导入 `@opencode-ai/console-core/*`，例如：
+  - 通过实际搜索可以确认，多个 route 文件直接导入 `@keel-ai/console-core/*`，例如：
     - `packages/console/app/src/routes/stripe/webhook.ts`
     - `packages/console/app/src/routes/bench/submission.ts`
     - `packages/console/app/src/routes/zen/util/handler.ts`
@@ -139,11 +139,11 @@ L5 基础设施、部署与分发层
 
 这一层是仓库真正的“能力核心”，但这里不是一个核心，而是**两个并列核心**。
 
-## 5.1 本地核心：`packages/opencode/`
+## 5.1 本地核心：`packages/keel/`
 
-`packages/opencode` 是本地 CLI / TUI / 本地服务运行时核心。
+`packages/keel` 是本地 CLI / TUI / 本地服务运行时核心。
 
-从 `packages/opencode/package.json` 和源码目录可以看到它承担了很多核心职责：
+从 `packages/keel/package.json` 和源码目录可以看到它承担了很多核心职责：
 
 - `src/cli/`：CLI 命令系统。
 - `src/agent/`：agent 行为与交互逻辑。
@@ -166,8 +166,8 @@ L5 基础设施、部署与分发层
 - `drizzle-orm`
 - `postgres`
 - `stripe`
-- `@opencode-ai/console-mail`
-- `@opencode-ai/console-resource`
+- `@keel-ai/console-mail`
+- `@keel-ai/console-resource`
 
 它的职责更接近：
 
@@ -178,7 +178,7 @@ L5 基础设施、部署与分发层
 
 所以如果从“业务中心”看，这个仓库有两个中心：
 
-1. `packages/opencode`：本地 agent/runtime 核心。
+1. `packages/keel`：本地 agent/runtime 核心。
 2. `packages/console/core`：云端 console 核心。
 
 这是理解仓库结构时最关键的一点。
@@ -274,7 +274,7 @@ L5 基础设施、部署与分发层
                │
      ┌─────────▼─────────┐
      │ 双核心运行时层     │
-     │ opencode          │
+     │ keel              │
      │ console/core      │
      └─────────┬─────────┘
                │
@@ -309,13 +309,13 @@ L5 基础设施、部署与分发层
 
 ### 9.2 明显混合的边界
 
-- `packages/opencode`
+- `packages/keel`
   - 同时承担 CLI、TUI、本地服务、工具系统、会话系统、存储等职责。
-  - 它是核心没错，但不是“窄而纯”的核心。
+  - 它是核心没错，但不是"窄而纯"的核心。
 
 - `packages/console/app`
   - 同时是产品前台和服务端路由容器。
-  - 实际搜索已确认多个 route 文件直接导入 `@opencode-ai/console-core/*`。
+  - 实际搜索已确认多个 route 文件直接导入 `@keel-ai/console-core/*`。
 
 - `packages/function`
   - 它是产品能力入口，不是通用基础层。
@@ -346,7 +346,7 @@ L5 基础设施、部署与分发层
 
 ### 业务逻辑层
 
-- `packages/opencode/`
+- `packages/keel/`
 - `packages/console/core/`
 
 ### 接口 / 表现层
@@ -372,7 +372,7 @@ L5 基础设施、部署与分发层
 
 1. `package.json`
    - 先确认 monorepo 结构和 workspace。
-2. `packages/opencode/src/index.ts`
+2. `packages/keel/src/index.ts`
    - 理解本地 runtime 的总入口。
 3. `packages/app/src/index.ts`
    - 理解共享应用壳是怎么暴露给桌面端的。
@@ -391,7 +391,7 @@ L5 基础设施、部署与分发层
 
 更准确的理解方式是：
 
-- **本地核心**：`packages/opencode`
+- **本地核心**：`packages/keel`
 - **云端核心**：`packages/console/core`
 - **产品与接入面**：`app`、桌面端、console、enterprise、web、Slack、VS Code
 - **共享支撑**：`ui`、`util`、`plugin`、`script`、`console/resource`
@@ -399,4 +399,4 @@ L5 基础设施、部署与分发层
 
 所以如果要一句话概括：
 
-> 这是一个围绕 OpenCode 能力构建的多入口 monorepo，采用“**双核心 + 多接入端 + 共享支撑包 + 部署装配层**”的结构，而不是严格单线分层架构。
+> 这是一个围绕 Keel 能力构建的多入口 monorepo，采用“**双核心 + 多接入端 + 共享支撑包 + 部署装配层**”的结构，而不是严格单线分层架构。
