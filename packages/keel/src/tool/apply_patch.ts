@@ -12,7 +12,8 @@ import { trimDiff } from "./edit"
 import { Filesystem } from "../util/filesystem"
 import DESCRIPTION from "./apply_patch.txt"
 import { File } from "../file"
-import { PackRegistry, type FileDiagnostic } from "@/pack"
+import { PackRegistry } from "@/pack/registry"
+import type { FileDiagnostic } from "@/pack/pack"
 
 function pretty(diagnostic: FileDiagnostic) {
   const severity =

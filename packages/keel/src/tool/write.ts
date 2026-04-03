@@ -11,7 +11,8 @@ import { Filesystem } from "../util/filesystem"
 import { Instance } from "../project/instance"
 import { trimDiff } from "./edit"
 import { assertExternalDirectory } from "./external-directory"
-import { PackRegistry, type FileDiagnostic } from "@/pack"
+import { PackRegistry } from "@/pack/registry"
+import type { FileDiagnostic } from "@/pack/pack"
 
 const MAX_DIAGNOSTICS_PER_FILE = 20
 const MAX_PROJECT_DIAGNOSTICS_FILES = 5
